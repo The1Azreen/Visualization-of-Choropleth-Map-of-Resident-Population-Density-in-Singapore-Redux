@@ -4,7 +4,7 @@ This is the static web conversion of the archived R/Shiny choropleth project. It
 
 ## Run locally
 
-Fetching the CSV and KML requires HTTP; opening `index.html` directly with `file://` will not work. With Python installed, run:
+Fetching the CSV and KML requires HTTP; opening `index.html` directly with `file://` will not work. With Python installed, double-click `run.bat` (it opens the browser for you), or run:
 
 ```powershell
 .\run-local.ps1
