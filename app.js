@@ -1,7 +1,10 @@
 const DATA_URL = "data/population.csv";
 const KML_URL = "data/planning-areas.kml";
 const numberFormatter = new Intl.NumberFormat("en-SG");
-const palette = ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c"];
+// Single-hue blue ramp; the lightest class stays visibly blue rather than near-white.
+const palette = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#0d366b"];
+const NO_RESIDENTS_COLOUR = "#e4e2dc";
+const NO_DATA_COLOUR = "#b8b5ad";
 
 const yearInput = document.querySelector("#year");
 const yearValue = document.querySelector("#year-value");
@@ -17,6 +20,8 @@ let years = [];
 let selectedYear;
 let selectedAgeGroup;
 let timer;
+let legend;
+const breaksByAgeGroup = new Map();
 
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -69,24 +74,59 @@ function valuesForSelection() {
   return values;
 }
 
-function colour(value, min, max) {
-  if (value == null) return "#d9e1e8";
-  if (max === min) return palette[palette.length - 1];
-  const index = Math.min(palette.length - 1, Math.floor(((value - min) / (max - min)) * palette.length));
-  return palette[index];
+function roundBreak(value) {
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 1);
+  return Math.round(value / magnitude) * magnitude;
+}
+
+// Quantile class breaks over every year for the age group, so colours stay comparable
+// while playing through years and small areas are spread across the ramp instead of
+// all landing in the lightest class.
+function breaksFor(ageGroup) {
+  if (!breaksByAgeGroup.has(ageGroup)) {
+    const values = records
+      .filter((record) => record.ageGroup === ageGroup && record.population > 0)
+      .map((record) => record.population)
+      .sort((a, b) => a - b);
+    const breaks = [];
+    for (let i = 1; i < palette.length; i += 1) {
+      const value = roundBreak(values[Math.floor((i / palette.length) * values.length)]);
+      if (!breaks.includes(value)) breaks.push(value);
+    }
+    breaksByAgeGroup.set(ageGroup, breaks);
+  }
+  return breaksByAgeGroup.get(ageGroup);
+}
+
+function colour(value, breaks) {
+  if (value == null) return NO_DATA_COLOUR;
+  if (value === 0) return NO_RESIDENTS_COLOUR;
+  const index = breaks.findIndex((limit) => value < limit);
+  return palette[index === -1 ? breaks.length : index];
+}
+
+function renderLegend(breaks) {
+  const swatch = (fill, text) => `<li><span style="background:${fill}"></span>${text}</li>`;
+  const format = (value) => numberFormatter.format(value);
+  const rows = breaks.map((limit, index) => {
+    const lower = index === 0 ? 1 : breaks[index - 1];
+    return swatch(palette[index], `${format(lower)} – ${format(limit - 1)}`);
+  });
+  rows.push(swatch(palette[breaks.length], `${format(breaks.at(-1))}+`));
+  rows.push(swatch(NO_RESIDENTS_COLOUR, "No residents"));
+  legend.getContainer().innerHTML = `<strong>Residents</strong><ul>${rows.join("")}</ul>`;
 }
 
 function renderMap() {
   if (!boundaries || !selectedAgeGroup) return;
   const values = valuesForSelection();
-  const numbers = [...values.values()].map((entry) => entry.population);
-  const min = Math.min(...numbers);
-  const max = Math.max(...numbers);
+  const breaks = breaksFor(selectedAgeGroup);
+  renderLegend(breaks);
   boundaries.eachLayer((layer) => {
     const entry = values.get(normaliseName(layer.feature.properties.name || layer.feature.properties.Name));
     const value = entry?.population;
     const area = entry ? entry.label : normaliseName(layer.feature.properties.name || layer.feature.properties.Name);
-    layer.setStyle({ fillColor: colour(value, min, max) });
+    layer.setStyle({ fillColor: colour(value, breaks) });
     layer.unbindTooltip();
     layer.bindTooltip(`${area}: ${value == null ? "No data" : numberFormatter.format(value)}`);
     layer.off("mouseover mouseout");
@@ -145,10 +185,15 @@ async function load() {
 }
 
 map = L.map("map").setView([1.3521, 103.8198], 11);
+// Tiles are greyed out in styles.css so the choropleth fills, not the street map, carry the colour.
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   maxZoom: 18,
 }).addTo(map);
+
+legend = L.control({ position: "bottomright" });
+legend.onAdd = () => L.DomUtil.create("div", "legend");
+legend.addTo(map);
 
 yearInput.addEventListener("input", (event) => setYear(event.target.value));
 ageGroupInput.addEventListener("change", (event) => {
