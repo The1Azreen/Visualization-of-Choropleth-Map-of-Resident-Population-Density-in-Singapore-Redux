@@ -21,7 +21,21 @@ Then open <http://localhost:8000>. The equivalent command is `python -m http.ser
 
 ## Data refresh
 
-The checked-in dataset covers June 2000–2026. 2000–2023 come from the archived Singapore Department of Statistics extract; 2024–2026 were added from SingStat's "Singapore Residents by Planning Area / Subzone, Single Year of Age and Sex, June 20xx" CSVs (2026 released 25 Sep 2026), summed over subzones and sex into 10-year age groups. The same aggregation reproduces the archived 2023 rows exactly. Note that SingStat reports June 2026 on the URA Master Plan 2025 planning-area demarcation, while the boundaries here are Master Plan 2019; the 55 planning-area names are unchanged. To add a newer annual extract, append rows to `data/population.csv` in the same four-column shape:
+The checked-in dataset covers June 2000–2026 and is rebuilt entirely from SingStat's current downloads, summed over subzones, sex and (for 2000–2010) dwelling type into 10-year age groups:
+
+- 2000–2010: "Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2000 to 2010"
+- 2011–2026: "Singapore Residents by Planning Area / Subzone, Single Year of Age and Sex" (2011–2020 combined file, then one file per year; June 2026 released 25 Sep 2026)
+
+Every row was checked against those files. The archived extract already matched SingStat exactly for 2011–2023, but its 2000–2010 rows did not match any file SingStat currently publishes. They differed by roughly ±100 per row, and their yearly totals sat further from the official resident figures, so those years were replaced with sums from the dwelling-type table above. Some 2011–2022 Tampines cells are published with thousands separators (for example `"1,180"`), so strip commas when parsing. The 2000 "Not Stated" rows (5,320 residents with no planning area) are left out because they cannot be mapped.
+
+About the numbers:
+
+- Counts are residents (citizens and permanent residents), not the total population, and not density per km².
+- SingStat rounds every published figure to the nearest 10, so summed totals run slightly above the headline figures (about 0.3%; 2026 sums to 4,244,570 against the published 4.23 million).
+- Planning areas follow the URA master plan in force for each year (1998 for 2000, 2008 for 2001–2010, 2014 for 2011–2019, 2019 for 2020–2025, 2025 for 2026). The map draws Master Plan 2019 boundaries throughout, and the 55 planning-area names are unchanged.
+- Map colours are five quantile classes computed per age group across all years, so a colour means the same count in every year.
+
+To add a newer annual extract, append rows to `data/population.csv` in the same four-column shape:
 
 ```text
 PA,AgeGroup,Time,TotalPop
