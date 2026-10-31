@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Explore Singapore resident population by planning area and age group.">
+    <title>Singapore Resident Population Density</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">Singapore planning areas</p>
+        <h1>Resident population density</h1>
+        <p>Explore how population changes across Singapore from 2000 to the latest available year.</p>
+      </header>
+
+      <section class="controls" aria-label="Map controls">
+        <label for="year">Year <output id="year-value"></output></label>
+        <input id="year" type="range" min="2000" max="2026" value="2026" step="1">
+        <label for="age-group">Age group</label>
+        <select id="age-group"></select>
+        <button id="play" type="button" aria-pressed="false">Play years</button>
+      </section>
+
+      <p id="status" class="status" role="status">Loading population and boundary data…</p>
+      <div id="map" aria-label="Choropleth map of Singapore resident population"></div>
+      <p id="details" class="details">Hover over a planning area for details.</p>
+
+      <footer>
+        <p>Population data: <a href="https://www.singstat.gov.sg/find-data/search-by-theme/population/geographic-distribution/latest-data">Singapore Department of Statistics</a>. Boundaries: <a href="https://www.ura.gov.sg/maps/#master-plan">URA Master Plan 2019</a>. From 2026, SingStat reports planning areas on the Master Plan 2025 demarcation, so small boundary differences may apply.</p>
+        <p>Static export for Neocities; run locally with the instructions in <a href="README.md">README.md</a>.</p>
+      </footer>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""></script>
+    <script src="https://unpkg.com/@tmcw/togeojson@6.0.0/dist/togeojson.umd.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
